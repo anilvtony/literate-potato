@@ -1,0 +1,803 @@
+Absolutely. The application must support both manual registration and camera-based automatic registration, with both methods saving into the same offline database.
+
+You don't need to choose one or the other.
+
+Add this requirement to your Antigravity prompt:
+
+## Mandatory Feature: Dual Registration System
+
+Implement TWO fully functional registration methods in the same Kotlin Android application.
+
+Both methods must use the same registration form, validation rules, serial number generator and Room SQLite database.
+
+### MODE 1: Manual Data Entry
+
+Provide a New Registration screen with all 12 fields.
+
+Features:
+
+- Manual keyboard input.
+- Numeric keyboard for Aadhaar and phone.
+- Automatic Title Case for names.
+- Automatic age calculation from DOB.
+- Sticky Address.
+- Relation quick-select chips.
+- Gender and Yes/No toggles.
+- Duplicate Aadhaar detection.
+- Tab and Enter keyboard navigation.
+- Automatic serial number.
+- Save and reset form.
+
+### MODE 2: Camera-Based Registration
+
+Provide a Scan Document button.
+
+Workflow:
+
+1. Open CameraX camera preview.
+2. Capture a registration document.
+3. Allow image cropping and rotation.
+4. Process the image using bundled offline ML Kit OCR.
+5. Extract all identifiable registration fields.
+6. Map extracted information to the corresponding 12 fields.
+7. Automatically populate the same registration form used in manual entry.
+8. Highlight uncertain or missing values.
+9. Allow the operator to edit every extracted field.
+10. Validate all fields.
+11. Save only after operator confirmation.
+
+Also allow selecting an existing photograph from the device gallery.
+
+### Shared Database
+
+Both registration methods must save into the same Room SQLite database.
+
+Store the source type:
+
+- MANUAL
+- CAMERA_OCR
+- GALLERY_OCR
+
+Use one serial number sequence across all registration methods.
+
+Prevent duplicate Aadhaar registrations.
+
+### Dashboard
+
+Display two prominent buttons:
+
+1. MANUAL REGISTRATION
+2. SCAN & AUTO-FILL
+
+Both should navigate to the same reusable registration form.
+
+### Important Rules
+
+- Manual entry must work without camera permission.
+- Camera registration must work without internet.
+- Manual entry must never depend on OCR.
+- OCR must never save records without operator confirmation.
+- Switching between manual and camera modes must not lose unsaved information.
+- Both methods must support editing and exporting.
+- Both methods must use identical validation and database logic.
+
+Do not build two separate databases or duplicate registration systems. Implement one shared registration workflow with two different input methods.
+
+Final application workflow:
+
+Policy Registration Manager
+
+Dashboard
+
+Manual Entry
+
+Type all fields
+
+Camera Scan
+
+OCR auto-fill
+
+Common Registration Form
+
+12 fields · Validation · Review
+
+One Offline SQLite Database
+
+Excel Export (.xlsx)
+
+This is the architecture I recommend: one database, one registration form, two ways to enter information.
+
+
+
+For your Kotlin Android application, add camera-based document scanning + OCR (image-to-text extraction) + automatic form filling to the offline database.
+
+The idea is simple: take a photograph of an enrollment form, extract the text, identify which information belongs to which field, populate the registration form, review the extracted values, and save everything into the local SQLite database.
+
+I recommend Google ML Kit Text Recognition with bundled on-device processing, so scanning works without internet after installation.
+
+Here is the complete Antigravity prompt.
+
+# MASTER DEVELOPMENT PROMPT
+
+# Offline Policy Registration & Intelligent Document Scanner
+
+## Native Android | Kotlin | Jetpack Compose | SQLite | Camera | OCR | Excel
+
+Act as a senior Android developer, Kotlin architect, computer vision engineer and UI/UX designer.
+
+Develop a fully functional native Android application named:
+
+**Policy Registration Manager**
+
+The application is designed for insurance policy registration enrollment campaigns. Operators must be able to manually enter information, scan handwritten or printed registration documents using the camera, extract information using offline OCR, automatically populate registration fields, review the results and save them into a local database.
+
+This must be a genuine working Android application, not a prototype or UI demonstration.
+
+Do not use Flutter, React Native, WebView, Firebase, cloud databases or online OCR APIs.
+
+---
+
+# 1. TECHNOLOGY STACK
+
+Use:
+
+- Kotlin
+- Jetpack Compose
+- Material 3
+- Room Database (SQLite)
+- CameraX
+- Google ML Kit Text Recognition with bundled on-device model
+- Kotlin Coroutines
+- Kotlin Flow
+- Android Keystore for encryption keys
+- Android Storage Access Framework
+- XLSX Excel export library compatible with Android
+- MVVM architecture
+
+All core functionality must work offline.
+
+OCR models must be included in the application package, not downloaded when scanning.
+
+---
+
+# 2. APPLICATION MODULES
+
+Create the following modules:
+
+1. Dashboard
+2. New Registration
+3. Camera Scanner
+4. OCR Review and Auto-Fill
+5. Registration Records
+6. Excel Export
+7. Campaign Settings
+8. Backup and Restore
+
+Use bottom navigation or an appropriate mobile navigation design.
+
+---
+
+# 3. DATABASE DESIGN
+
+Use one local Room database.
+
+Database name:
+
+PolicyRegistrationDB
+
+Create a registration table with the following exact fields:
+
+| Column | Field             | Data type |
+| ------ | ----------------- | --------- |
+| A      | S_No              | INTEGER   |
+| B      | Aadhaar_No        | TEXT      |
+| C      | Name_of_the_Mason | TEXT      |
+| D      | Address           | TEXT      |
+| E      | Age               | INTEGER   |
+| F      | Nominee           | TEXT      |
+| G      | Relation          | TEXT      |
+| H      | Phone_Number      | TEXT      |
+| I      | DOB               | TEXT      |
+| J      | Gender            | TEXT      |
+| K      | Accident_Previous | TEXT      |
+| L      | Existing_Policy   | TEXT      |
+
+Additional internal database fields:
+
+- recordId: Primary key
+- campaignId
+- createdAt
+- updatedAt
+- sourceType (MANUAL or SCAN)
+- OCR confidence/review status
+
+Requirements:
+
+- Automatic serial numbering.
+- Never reuse deleted serial numbers.
+- Duplicate Aadhaar detection.
+- Persistent records.
+- Database migrations.
+- Transactional writes.
+- Search, update and delete.
+- No external server.
+
+Store Aadhaar and phone numbers as TEXT, not numeric types.
+
+Encrypt sensitive Aadhaar information at rest using Android Keystore-backed encryption.
+
+---
+
+# 4. MANUAL REGISTRATION FORM
+
+Create a fast registration interface with these fields:
+
+A. S. No
+
+- Automatically generated.
+- Starting serial number configurable.
+- Read-only.
+
+B. Aadhaar No
+
+- Exactly 12 digits.
+- Numeric keyboard.
+- Live counter.
+- Duplicate detection.
+- Masked display where appropriate.
+
+C. Name of the Mason
+
+- Text input.
+- Title Case capitalization.
+
+D. Address
+
+- Text input.
+- Sticky Address Lock.
+- Reuse the previous address for the next registration when enabled.
+
+E. Age
+
+- Automatically calculated from DOB.
+- Manual correction only with explicit confirmation.
+
+F. Nominee
+
+- Full name.
+- Title Case capitalization.
+
+G. Relation\
+Quick-select chips:
+
+- Wife
+- Mother
+- Father
+- Husband
+- Son
+- Daughter
+- Brother
+- Sister
+- Other
+
+H. Phone Number
+
+- Exactly 10 digits.
+- Numeric keyboard.
+- Live counter.
+
+I. DOB
+
+- Date picker.
+- DD.MM.YYYY display.
+- Age calculation.
+
+J. Gender
+
+- Male/Female toggle.
+- Default Male.
+
+K. Accident in Previous
+
+- Yes/No.
+- Default No.
+
+L. Existing Accidental Policy
+
+- Yes/No.
+- Default No.
+
+Support physical keyboard navigation:
+
+- Tab moves to the next field.
+- Enter submits when appropriate.
+- After saving, reset the form and focus Aadhaar.
+
+---
+
+# 5. CAMERA DOCUMENT SCANNER
+
+Implement a functional document scanner using CameraX.
+
+Provide:
+
+- Live camera preview.
+- Rear/front camera selection.
+- Flash toggle.
+- Capture button.
+- Image retake.
+- Image crop.
+- Image rotation.
+- Image enhancement.
+- Document edge detection where practical.
+- Image perspective correction.
+- Save scanned image temporarily for processing.
+
+The camera must work without internet.
+
+Allow the operator to choose an existing image from the phone gallery as an alternative.
+
+Support:
+
+- Printed documents.
+- Clear photographs of handwritten forms.
+- Existing policy registration sheets.
+- Individual identity/document photographs.
+
+Do not assume that handwritten text will always be recognized correctly.
+
+---
+
+# 6. OFFLINE OCR ENGINE
+
+Use bundled Google ML Kit Text Recognition.
+
+Important:
+
+- Use the bundled on-device model.
+- No cloud OCR.
+- No external API calls.
+- OCR must function in airplane mode.
+
+Process captured images through these stages:
+
+1. Image preprocessing.
+2. Perspective correction where possible.
+3. Contrast enhancement.
+4. OCR text recognition.
+5. Text block and line extraction.
+6. Field identification.
+7. Data normalization.
+8. Validation.
+9. Form auto-population.
+
+Preserve the original extracted text for operator review.
+
+If OCR confidence is low or a field cannot be identified, leave that field empty and flag it for manual correction.
+
+---
+
+# 7. INTELLIGENT FIELD EXTRACTION
+
+Build an OCR field-mapping engine.
+
+Identify these fields from extracted text:
+
+- Aadhaar Number
+- Mason Name
+- Address
+- Age
+- Nominee Name
+- Relation
+- Phone Number
+- DOB
+- Gender
+- Previous Accident
+- Existing Accidental Policy
+
+Use multiple recognition strategies:
+
+### Aadhaar
+
+Identify valid 12-digit sequences.\
+Remove spaces only when appropriate.\
+Reject invalid digit counts.\
+Check duplicates against the database.
+
+### Phone
+
+Identify 10-digit Indian mobile numbers.\
+Do not confuse Aadhaar digits with phone numbers.
+
+### DOB
+
+Recognize:
+
+- DD.MM.YYYY
+- DD/MM/YYYY
+- DD-MM-YYYY
+- DD.MM.YY
+
+Normalize to DD.MM.YYYY.
+
+### Age
+
+Calculate age from valid DOB.\
+If both age and DOB are present, compare them and flag mismatches.
+
+### Names
+
+Recognize names using nearby labels and document layout.\
+Do not automatically treat every capitalized phrase as a person's name.
+
+### Nominee and Relation
+
+Use nearby labels and spatial proximity.\
+Do not guess a relationship when it is missing.
+
+### Gender
+
+Recognize Male/Female and common abbreviations.
+
+### Previous Accident / Existing Policy
+
+Recognize Yes/No, tick marks and checkbox selections when the image is clear.
+
+Never invent missing information.
+
+---
+
+# 8. OCR REVIEW AND AUTO-FILL SCREEN
+
+After scanning, DO NOT immediately save the extracted information.
+
+Open a review screen.
+
+Display:
+
+- Original scanned image.
+- Extracted OCR text.
+- Identified field values.
+- Editable registration form.
+- Confidence or review indicators.
+- Missing field warnings.
+- Duplicate Aadhaar warning.
+- Validation errors.
+
+Highlight uncertain fields.
+
+Provide three actions:
+
+1. Accept and Save.
+2. Edit Extracted Information.
+3. Retake Photograph.
+
+When the operator selects a recognized field, optionally highlight its corresponding region on the scanned document.
+
+Only save after operator confirmation.
+
+The OCR process must never silently overwrite existing registration records.
+
+---
+
+# 9. HIGH-SPEED ENROLLMENT WORKFLOW
+
+Support two entry modes.
+
+### Mode A: Manual Entry
+
+Aadhaar → Name → Address → DOB → Nominee → Relation → Phone → Save.
+
+### Mode B: Camera Scanning
+
+Open Camera → Capture Document → OCR Processing → Field Mapping → Review → Auto-Fill → Save.
+
+After successful saving:
+
+- Insert record into Room.
+- Confirm successful submission.
+- Increment serial number.
+- Reset the form.
+- Preserve Sticky Address.
+- Return focus to Aadhaar.
+
+Target a smooth, low-latency user experience.
+
+---
+
+# 10. DASHBOARD
+
+Display:
+
+- Total registrations.
+- Today's registrations.
+- Current campaign.
+- Next serial number.
+- Duplicate Aadhaar warnings.
+- Pending records.
+- Last Excel export.
+
+Main buttons:
+
+- New Registration
+- Scan Document
+- View Records
+- Export Excel
+- Campaign Settings
+
+---
+
+# 11. RECORD MANAGEMENT
+
+Implement:
+
+- Search by name.
+- Search by serial number.
+- Search by phone.
+- Search by Aadhaar with masked display.
+- Edit records.
+- Delete with confirmation.
+- Filter by campaign.
+- Filter by registration date.
+- Filter by Manual or Scanned source.
+
+Display a scan icon for records created through OCR.
+
+Allow viewing the associated scanned image when retained.
+
+---
+
+# 12. EXCEL EXPORT
+
+Generate a genuine XLSX file.
+
+Filename:
+
+Policy_Registration_Export.xlsx
+
+Exact column order:
+
+A. S_No\
+B. Aadhaar_No\
+C. Name_of_the_Mason\
+D. Address\
+E. Age\
+F. Nominee\
+G. Relation\
+H. Phone_Number\
+I. DOB\
+J. Gender\
+K. Accident_Previous\
+L. Existing_Policy
+
+Header formatting:
+
+Row 1:\
+Merge A1.
+
+UNITED INDIA INSURANCE COMPANY LIMITED, Medak (Dist).
+
+14 pt bold, gray background, centered.
+
+Row 2:\
+A2 merged:\
+Meeting Place: Kukunoorpally | Date: configurable
+
+E2 merged:\
+Certificate No: configurable
+
+I2 merged:\
+Valid: configurable
+
+Row 3:\
+Blank separator.
+
+Row 4:\
+Column headers.\
+Blue background #1E40AF.\
+White bold text.\
+Medium borders.
+
+Row 5 onwards:\
+Registration data in serial-number order.
+
+Preserve Aadhaar and phone values as text to avoid scientific notation.
+
+Support:
+
+- Export all.
+- Export selected records.
+- Export by campaign.
+- Export by date range.
+
+Use Android file picker to choose the save location.
+
+---
+
+# 13. CAMPAIGN MANAGEMENT
+
+Allow configuration of:
+
+- Insurance Company.
+- District.
+- Meeting Place.
+- Campaign Date.
+- Certificate Number.
+- Starting Serial Number.
+- Serial Number Range.
+- Policy Valid From.
+- Policy Valid To.
+- Default Village/Address.
+
+Allow multiple campaigns with separate registration records.
+
+Never mix records from different campaigns in an export unless explicitly requested.
+
+---
+
+# 14. SECURITY AND PRIVACY
+
+The application handles sensitive personal information.
+
+Implement:
+
+- Local-only processing.
+- Aadhaar encryption.
+- Keystore-backed encryption keys.
+- No Aadhaar values in application logs.
+- Mask Aadhaar in record lists.
+- No cloud uploads.
+- No advertising SDK.
+- No analytics tracking.
+- Explicit export authorization.
+- Secure temporary image handling.
+- Clear option to delete scanned images after successful registration.
+
+Do not save unencrypted Aadhaar data in plain JSON cache files.
+
+---
+
+# 15. BACKUP AND RESTORE
+
+Implement:
+
+- Manual database backup.
+- JSON export for backup only.
+- Restore from backup.
+- Validation before restoration.
+- Duplicate detection during import.
+- Campaign preservation.
+- Exported Excel files.
+
+Backups containing personal information must be protected and clearly identified as sensitive.
+
+---
+
+# 16. TESTING
+
+Test these scenarios:
+
+1. Manual registration.
+2. Camera capture.
+3. Gallery image selection.
+4. OCR extraction.
+5. Aadhaar recognition.
+6. Phone recognition.
+7. DOB extraction.
+8. Age calculation.
+9. Nominee identification.
+10. Duplicate Aadhaar detection.
+11. Uncertain OCR handling.
+12. Database persistence after restart.
+13. Excel generation.
+14. Multiple campaigns.
+15. Backup and restore.
+16. Airplane-mode operation.
+
+Test with both printed and handwritten samples.
+
+Never claim handwritten OCR is 100% accurate.
+
+---
+
+# 17. BUILD AND DELIVERY
+
+Deliver a complete working Android Studio-compatible Kotlin project.
+
+Required output:
+
+- Kotlin source code.
+- Compose screens.
+- Room database.
+- CameraX implementation.
+- Offline OCR implementation.
+- Field extraction engine.
+- Excel exporter.
+- Backup and restore.
+- Unit tests.
+- README.
+- Debug APK.
+
+No placeholder buttons.\
+No mock OCR.\
+No fake database.\
+No cloud dependencies.\
+No incomplete implementations.
+
+Build and test the actual APK.
+
+---
+
+# 18. IMPLEMENTATION ORDER
+
+Work in these phases:
+
+Phase 1: Project inspection, Gradle configuration and Room database.
+
+Phase 2: Manual registration and validation.
+
+Phase 3: CameraX document scanner.
+
+Phase 4: Bundled offline ML Kit OCR.
+
+Phase 5: OCR field mapping and editable review screen.
+
+Phase 6: Records management and Excel export.
+
+Phase 7: Campaign management, encryption and backup.
+
+Phase 8: Testing and APK generation.
+
+After each phase, compile the project and resolve errors before proceeding.
+
+Do not replace existing working code without inspecting it.
+
+The final application must be a reliable offline insurance enrollment system suitable for actual field deployment.
+
+## How the scanning workflow will look
+
+[How to print and scan with Android – Computerworld](https://images.openai.com/static-rsc-4/sf9LNKYkwv4RseX0PCwnGga0ljb0otC41G3GuAKZykBKyXguHTltgoIbueZ_bewjbw3mUnoKEL6znPUce5OwLNf-9M3juUVse8Hhe0sIQGo4gzmDWGDflQJXv9AgoWuDnnpIiLI00e5I8dwl9yzBc51UTTZm0y9K3MQIGh32JFc?purpose=inline)
+
+1\. Capture document
+
+Photograph the mason's registration sheet or supporting document.
+
+[ScanWritr Pro | All-in-One Dokumentenscanner, Editor & Fax](https://images.openai.com/static-rsc-4/-HRJIK8aDMZs-cQ5o1QFPOrhPInmYBq74f4s00v9_qcmcKFt6rJ5YXZB9ghV2MlIRVc2fS6gXteuT__1ZqB0K74Yuf-g-CzYRbLehJk7QMDQNv1QVQX0Ukr14KfoptB7G-XVu3hQcrxPTv_mAorh8FGXo6iitSW1dktU0As-LWc?purpose=inline)
+
+2\. Extract information
+
+Offline OCR identifies text, numbers, dates and possible field labels.
+
+[Al-Qaseh Finance App KYC Forms with OCR screens by Saloneel (The duo designers) on Dribbble](https://images.openai.com/static-rsc-4/SoFWsz84XtE8sp4yXa4BJ-ij1fxKv_KxLRfHAQ8zlq4KrIFUhSTrNG1BmUbw2EStWL-xEqpPsNIwWP2Rz2-UYGdYQOZAEqtBgWvOde8ZKUhzSO63DqPdHqc2fPsofd5aVit-EWjPKTFZgViHo2nYkLqHMUEKp5LiNOAjTfy15FA?purpose=inline)
+
+3\. Review and auto-fill
+
+Extracted information appears in the 12 registration fields. Correct mistakes before saving.
+
+[MyPension - Finance App | MWM](https://images.openai.com/static-rsc-4/2dSvioqCMd_ixFvQfFtUZWWQjpBBde3dOQ2MBlE8JQvIp8arWsoz5jjp1TU_1bsxgyhbUIAUEBb-eSAvr8J3oOOFQ8UX4d5GzLDHSdIWzTP5yvmL5HqfRZ00MPnVHMjFKcCpdcOfv6xZ4KZeuoihqoBqdCE4g8Y5JaFORUth_2E?purpose=inline)
+
+4\. Save and export
+
+Save to local SQLite and export the official Excel template.
+
+## Important technical recommendation
+
+For OCR, use the bundled ML Kit Text Recognition model, not the dynamically downloaded model. Otherwise the first scan may require internet.
+
+Also, OCR can recognize printed Aadhaar, names and dates reasonably well, but handwriting and checkbox interpretation need manual confirmation. Never automatically approve an extracted Aadhaar number.
+
+## One question about your camera feature
+
+What type of documents will you scan most often?
+
+Printed registration forms containing all 12 fields
+
+Handwritten registration forms
+
+Aadhaar cards and other identity documents
+
+Multiple documents and mixed formats
+
+Confirm scanning type
+
+This matters because printed-form OCR and handwritten-form OCR require different recognition strategies.
